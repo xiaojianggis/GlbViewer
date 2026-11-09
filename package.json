@@ -1,0 +1,18 @@
+{
+  "name": "glbviewer",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Browser viewer for glTF/GLB, Tecplot PLT, PLY, OBJ, FBX, STL, LAS and other 3D files",
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "dev": "node build.mjs --serve",
+    "samples": "python3 tools/make_samples.py"
+  },
+  "dependencies": {
+    "three": "0.170.0"
+  },
+  "devDependencies": {
+    "esbuild": "0.24.0"
+  }
+}

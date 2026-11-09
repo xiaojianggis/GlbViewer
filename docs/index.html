@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GlbViewer — 3D model and simulation viewer</title>
+  <meta name="description" content="View glTF/GLB, Tecplot PLT, PLY, OBJ, FBX, STL, LAS and other 3D files in the browser. Files never leave your computer." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./style.css" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22%3E%3Cpath d=%22M12 2 21 7v10l-9 5-9-5V7z%22 fill=%22%23006d8f%22/%3E%3C/svg%3E" />
+</head>
+<body>
+  <header class="bar">
+    <button class="icon-btn panel-toggle" id="panelToggle" aria-label="Show side panel" aria-expanded="false">
+      <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 5h14M3 10h14M3 15h14" /></svg>
+    </button>
+    <div class="brand">
+      <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2 21 7v10l-9 5-9-5V7z" /><path d="M3 7l9 5 9-5M12 12v10" /></svg>
+      <span>GlbViewer</span>
+    </div>
+    <div class="bar-actions">
+      <button class="btn primary" id="openBtn">Open files</button>
+      <button class="btn" id="urlBtn">Open URL</button>
+      <button class="btn" id="shotBtn" disabled>Save image</button>
+      <button class="btn quiet" id="clearBtn" disabled>Clear all</button>
+    </div>
+    <input type="file" id="fileInput" multiple hidden />
+  </header>
+
+  <main class="shell">
+    <aside class="panel" id="panel" aria-label="Scene controls">
+      <section class="sec" id="filesSec">
+        <h2>Files</h2>
+        <ul class="files" id="fileList"></ul>
+        <p class="hint" id="filesEmpty">Nothing loaded yet.</p>
+      </section>
+
+      <section class="sec" id="colorSec" hidden>
+        <h2>Color by</h2>
+        <label class="row"><span>Variable</span><select id="varSel"></select></label>
+        <div id="fieldCtrls">
+          <label class="row"><span>Color map</span><select id="cmapSel"></select></label>
+          <div class="row range-row">
+            <span>Range</span>
+            <input type="number" id="minIn" step="any" aria-label="Minimum" />
+            <input type="number" id="maxIn" step="any" aria-label="Maximum" />
+          </div>
+          <div class="row checks">
+            <label><input type="checkbox" id="autoRange" checked /> Fit to data</label>
+            <label><input type="checkbox" id="invertCm" /> Reverse</label>
+          </div>
+          <label class="row"><span>Bands</span>
+            <input type="range" id="bandsIn" min="0" max="24" step="1" value="0" />
+            <output id="bandsOut">smooth</output>
+          </label>
+        </div>
+        <details class="sub" id="mapDetails" hidden>
+          <summary>Coordinate variables</summary>
+          <label class="row"><span>X</span><select id="mapX"></select></label>
+          <label class="row"><span>Y</span><select id="mapY"></select></label>
+          <label class="row"><span>Z</span><select id="mapZ"></select></label>
+        </details>
+      </section>
+
+      <section class="sec">
+        <h2>Display</h2>
+        <div class="row seg" role="group" aria-label="Up axis">
+          <span>Up axis</span>
+          <button class="seg-btn" data-up="Y">Y up</button>
+          <button class="seg-btn" data-up="Z">Z up</button>
+        </div>
+        <div class="row seg" role="group" aria-label="Background">
+          <span>Background</span>
+          <button class="seg-btn" data-bg="sky">Sky</button>
+          <button class="seg-btn" data-bg="dark">Dark</button>
+          <button class="seg-btn" data-bg="white">White</button>
+        </div>
+        <div class="checks grid2">
+          <label><input type="checkbox" id="gridChk" checked /> Ground grid</label>
+          <label><input type="checkbox" id="axesChk" checked /> Axis gizmo</label>
+          <label><input type="checkbox" id="wireChk" /> Wireframe</label>
+          <label><input type="checkbox" id="flatChk" /> Flat shading</label>
+          <label><input type="checkbox" id="envChk" checked /> Studio lighting</label>
+          <label><input type="checkbox" id="unlitChk" /> True colors</label>
+        </div>
+        <label class="row"><span>Light</span><input type="range" id="lightIn" min="0" max="3" step="0.05" value="1" /></label>
+        <label class="row"><span>Point size</span><input type="range" id="ptIn" min="1" max="12" step="0.5" value="2" /><output id="ptOut">2 px</output></label>
+      </section>
+
+      <section class="sec">
+        <h2>Section cut</h2>
+        <div class="row checks">
+          <label><input type="checkbox" id="clipChk" /> Cut the model</label>
+          <label><input type="checkbox" id="clipFlip" /> Keep other side</label>
+        </div>
+        <div class="row seg" role="group" aria-label="Cut axis">
+          <span>Across</span>
+          <button class="seg-btn" data-clip="x">X</button>
+          <button class="seg-btn" data-clip="y">Height</button>
+          <button class="seg-btn" data-clip="z">Depth</button>
+        </div>
+        <label class="row"><span>Position</span><input type="range" id="clipPos" min="0" max="1" step="0.001" value="0.5" /></label>
+      </section>
+
+      <section class="sec" id="animSec" hidden>
+        <h2>Animation</h2>
+        <label class="row"><span>Clip</span><select id="clipSel"></select></label>
+        <div class="row">
+          <button class="btn" id="playBtn">Play</button>
+          <label class="inline"><span>Speed</span><input type="range" id="speedIn" min="0.1" max="3" step="0.1" value="1" /></label>
+        </div>
+      </section>
+
+      <section class="sec" id="infoSec" hidden>
+        <h2>About this file</h2>
+        <dl class="info" id="infoList"></dl>
+        <ul class="warnings" id="warnList"></ul>
+      </section>
+
+      <p class="privacy">Files are read in your browser and never uploaded.</p>
+    </aside>
+
+    <section class="stage" id="stage" data-bg="sky">
+      <div class="empty" id="empty">
+        <h1>Drop a 3D file anywhere</h1>
+        <p>glTF/GLB, Tecplot PLT, PLY, OBJ + MTL, FBX, STL, LAS, 3MF, Collada, USDZ, VTK, PCD, XYZ, OFF, VRML, AMF, or a ZIP containing any of these.</p>
+        <div class="empty-actions">
+          <button class="btn primary" id="emptyOpen">Choose files</button>
+          <button class="btn" data-sample="./samples/street-canyon.plt.txt" data-name="street-canyon.plt">Try a Tecplot heat map</button>
+          <button class="btn" data-sample="./samples/scan-cloud.ply.txt" data-name="scan-cloud.ply">Try a PLY point cloud</button>
+        </div>
+      </div>
+
+      <div class="drop" id="drop" hidden><div>Release to open</div></div>
+      <div class="loading" id="loading" hidden><span class="spinner"></span><span id="loadingText">Reading…</span></div>
+
+      <div class="legend" id="legend" hidden>
+        <div class="legend-title" id="legendTitle"></div>
+        <div class="legend-bar" id="legendBar"></div>
+        <div class="legend-ticks" id="legendTicks"></div>
+      </div>
+
+      <div class="tools" id="tools" hidden>
+        <button class="tool" data-view="fit" title="Fit to view (F)">Fit</button>
+        <button class="tool" data-view="top" title="View from above">Top</button>
+        <button class="tool" data-view="front" title="View from the front">Front</button>
+        <button class="tool" data-view="side" title="View from the side">Side</button>
+        <button class="tool" data-view="iso" title="Three-quarter view">3D</button>
+        <span class="tool-sep"></span>
+        <button class="tool" id="probeBtn" aria-pressed="true" title="Click the model to read coordinates and values">Probe</button>
+        <button class="tool" id="measureBtn" aria-pressed="false" title="Click two points to measure distance (M)">Measure</button>
+      </div>
+
+      <div class="tag" id="probeTag" hidden></div>
+      <div class="tag measure" id="measureTag" hidden></div>
+      <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    </section>
+  </main>
+
+  <dialog id="urlDialog">
+    <form method="dialog">
+      <h2>Open a file from a link</h2>
+      <p class="hint">The server must allow cross-origin requests. GitHub raw links work.</p>
+      <input type="url" id="urlIn" placeholder="https://…/model.glb" required />
+      <div class="dlg-actions">
+        <button class="btn quiet" value="cancel" formnovalidate>Cancel</button>
+        <button class="btn primary" value="ok">Open</button>
+      </div>
+      <p class="hint">Example: <a href="#" id="urlExample">Khronos Damaged Helmet (GLB)</a></p>
+    </form>
+  </dialog>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
